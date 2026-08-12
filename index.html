@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AXP | Forensic Audit Report</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Navy Intelligence. Fundo em azul marinho profundo (dark_navy_blue_website_background_back.jpg), textos em cinza técnico, alertas em Crimson Audit e sucessos em Emerald Ledger. -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
+        
+        :root {
+            --bg-color: #0b0f19;
+            --forensic-border: rgba(59, 130, 246, 0.2);
+            --accent-red: #ef4444;
+            --accent-blue: #3b82f6;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-color);
+            background-image: linear-gradient(rgba(11, 15, 25, 0.8), rgba(11, 15, 25, 0.9)), url('dark_navy_blue_website_background_back.jpg');
+            background-size: cover;
+            background-attachment: fixed;
+            color: #d1d5db;
+            margin: 0;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        .forensic-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--forensic-border);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .forensic-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-blue);
+            opacity: 0.5;
+        }
+
+        .forensic-card.danger::before { background: var(--accent-red); }
+
+        .chart-container { 
+            position: relative; 
+            width: 100%; 
+            max-width: 500px; 
+            height: 300px; 
+            margin: auto;
+        }
+
+        .scanline {
+            width: 100%;
+            height: 2px;
+            background: rgba(59, 130, 246, 0.1);
+            position: absolute;
+            animation: moveScanline 8s linear infinite;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        @keyframes moveScanline {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        .stamp {
+            border: 3px solid var(--accent-red);
+            color: var(--accent-red);
+            padding: 4px 12px;
+            text-transform: uppercase;
+            font-weight: 800;
+            transform: rotate(-12deg);
+            opacity: 0.6;
+            display: inline-block;
+        }
+
+        .evidence-table th {
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #64748b;
+            border-bottom: 1px solid var(--forensic-border);
+        }
+
+        .btn-lang {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: grayscale(1);
+            opacity: 0.4;
+        }
+
+        .btn-lang.active {
+            filter: grayscale(0);
+            opacity: 1;
+            transform: scale(1.1);
+            border-bottom: 2px solid var(--accent-blue);
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-blue-500/30">
+    <div class="scanline"></div>
+
+    <!-- Application Structure Plan:
+    1. HEADER: Identificação de Auditoria (ID do Caso, Classificação). Tipografia contida e técnica.
+    2. ABSTRACT: Resumo Executivo da falha do multisender da Smithii.
+    3. ANALYSIS GRID: Decomposição forense das falhas (Strings corrompidas e Logic Flow).
+    4. CUSTODY: Tabela de evidências on-chain com hashes reais da Solana.
+    5. RECOMMENDATIONS: O plano de remediação via TRON e Squads Protocol.
+    Interações: Troca de idioma (PT/EN) atualizando toda a terminologia técnica do dossiê.
+    -->
+
+    <nav class="fixed top-0 w-full z-50 bg-slate-950/90 border-b border-white/5 backdrop-blur-xl">
+        <div class="max-w-7xl mx-auto px-8 h-16 flex justify-between items-center">
+            <div class="flex items-center space-x-6">
+                <div class="text-[10px] mono border border-blue-500/50 px-2 py-1 text-blue-400">
+                    CASE_ID: AXP-2026-SOL-043
+                </div>
+                <div class="text-[10px] mono border border-red-500/50 px-2 py-1 text-red-400">
+                    STATUS: RESTRICTED_ACCESS
+                </div>
+            </div>
+            
+            <div class="flex space-x-8">
+                <button onclick="changeLang('pt')" id="btn-pt" class="btn-lang active flex items-center gap-2">
+                    <span class="text-xl">🇧🇷</span> <span class="text-[10px] font-bold">PT_BR</span>
+                </button>
+                <button onclick="changeLang('en')" id="btn-en" class="btn-lang flex items-center gap-2">
+                    <span class="text-xl">🇺🇸</span> <span class="text-[10px] font-bold">EN_US</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-32 pb-24 px-6 max-w-6xl mx-auto">
+        
+        <!-- Header Seção -->
+        <header class="mb-16 border-b border-white/10 pb-12">
+            <h1 id="main-title" class="text-3xl md:text-4xl font-extrabold text-white mb-4 tracking-tight uppercase italic">
+                Dossiê Forense Interno: <span class="text-blue-500">Falhas em Protocolos Web3</span>
+            </h1>
+            <div class="flex flex-col md:flex-row md:items-center gap-6">
+                <p id="report-date" class="text-xs mono text-slate-500 uppercase tracking-widest">Data do Relatório: 11 de Agosto de 2026</p>
+                <div class="h-4 w-px bg-slate-800 hidden md:block"></div>
+                <p id="auditor-label" class="text-xs mono text-slate-500 uppercase tracking-widest">Responsável: Axiom Premier Audit Dept.</p>
+            </div>
+        </header>
+
+        <!-- Resumo Executivo -->
+        <section class="mb-16">
+            <div class="forensic-card p-8 rounded-sm">
+                <h2 id="abstract-title" class="text-xs font-black text-blue-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+                    <span class="w-2 h-2 bg-blue-500"></span> 1. Resumo Executivo (Abstract)
+                </h2>
+                <div id="abstract-content" class="text-sm md:text-base leading-relaxed text-slate-400 space-y-4">
+                    <p>Este documento analisa vulnerabilidades críticas no processamento de transações em lote (Batching) utilizando ferramentas de terceiros durante o Genesis Day do projeto Axiom Premier. A investigação foca na corrupção de strings criptográficas que resultou no isolamento definitivo de 80% do supply nativo na rede Solana.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Análise Técnica -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
+            <!-- Análise Multisender -->
+            <div class="forensic-card danger p-8 rounded-sm">
+                <h3 id="multisender-title" class="text-xs font-black text-red-500 uppercase tracking-[0.3em] mb-8">
+                    2. Análise de Falhas: Multisender Smithii
+                </h3>
+                
+                <div class="bg-black/40 p-6 rounded mb-8 mono text-[11px] border border-red-500/10">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-slate-600">// Input Original:</span>
+                        <span class="text-emerald-500">...KFfCex</span>
+                    </div>
+                    <div class="flex justify-between mb-4">
+                        <span class="text-slate-600">// Backend Output:</span>
+                        <span class="text-red-500">...KFFCex</span>
+                    </div>
+                    <div class="text-red-500/80 italic">> Erro de Parsing: String Case-Sensitivity Corrupted</div>
+                </div>
+
+                <div class="space-y-6 text-sm text-slate-400">
+                    <p id="multisender-desc-1"><strong>Mecanismo da Falha:</strong> O provedor de batching falhou ao converter strings de endereços, alterando caracteres maiúsculos/minúsculos antes da assinatura da transação.</p>
+                    <p id="multisender-desc-2"><strong>Causa Raiz:</strong> Ausência de Checksum de integridade no motor de roteamento do provedor.</p>
+                    <div class="pt-4">
+                        <div class="stamp" id="stamp-burned">SUPPLY QUEIMADO</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard de Supply -->
+            <div class="forensic-card p-8 rounded-sm">
+                <h3 id="supply-analysis-title" class="text-xs font-black text-blue-500 uppercase tracking-[0.3em] mb-8">
+                    3. Impacto no Ledger: Proof of Burn
+                </h3>
+                <div class="chart-container mb-6">
+                    <canvas id="supplyChart"></canvas>
+                </div>
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div class="bg-slate-900/50 p-4 border border-white/5">
+                        <div id="stat-burned-label" class="text-[10px] mono text-slate-500 mb-1">ISOLADO (BURNED)</div>
+                        <div class="text-xl font-bold text-red-500">80%</div>
+                    </div>
+                    <div class="bg-slate-900/50 p-4 border border-white/5">
+                        <div id="stat-circ-label" class="text-[10px] mono text-slate-500 mb-1">CIRCULANTE</div>
+                        <div class="text-xl font-bold text-emerald-500">20%</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cadeia de Custódia -->
+        <section class="mb-16">
+            <h2 id="custody-title" class="text-xs font-black text-slate-500 uppercase tracking-[0.3em] mb-8 flex items-center gap-2">
+                <span class="w-2 h-2 bg-slate-500"></span> 4. Cadeia de Custódia e Artefatos Digitais
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="evidence-table w-full text-left">
+                    <thead>
+                        <tr>
+                            <th class="py-4 px-4">ID_ARTEFATO</th>
+                            <th class="py-4 px-4">REDE/BLOCKCHAIN</th>
+                            <th class="py-4 px-4">HASH_DA_EVIDÊNCIA (SOLSCAN)</th>
+                            <th class="py-4 px-4">ESTADO_ATUAL</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-[11px] mono">
+                        <tr class="border-b border-white/5 hover:bg-white/5">
+                            <td class="py-4 px-4 text-slate-400">ART-01 (AXP)</td>
+                            <td class="py-4 px-4">Solana Mainnet</td>
+                            <td class="py-4 px-4"><a href="https://solscan.io/tx/FqQ9eDQemTp5u92fne8yXLPQpAjgYRtdNzgP471GxcVWXGnqxXPRFWoP4cHG2d4cKWxWstAURCog32eVa9Bgvos" target="_blank" class="text-blue-500 hover:underline">FqQ9...Bgvos</a></td>
+                            <td class="py-4 px-4 text-red-500">Isolado/Corrompido</td>
+                        </tr>
+                        <tr class="border-b border-white/5 hover:bg-white/5">
+                            <td class="py-4 px-4 text-slate-400">ART-02 (SOL)</td>
+                            <td class="py-4 px-4">Solana Mainnet</td>
+                            <td class="py-4 px-4"><a href="https://solscan.io/tx/Jd8ZuYj9fVQiHeWZtmYgBtSxnhCCNVCzN9PbQxg6d7B7sLLdBBnNhNMSPiBTbfwoX7XHDdcfDYjiC2kZsAL6duH" target="_blank" class="text-blue-500 hover:underline">Jd8Z...6duH</a></td>
+                            <td class="py-4 px-4 text-blue-400">Audit Test Fail</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Recomendações Forenses -->
+        <section>
+            <div class="forensic-card p-10 md:p-16 rounded-sm border-emerald-500/20">
+                <h2 id="roadmap-title" class="text-xs font-black text-emerald-500 uppercase tracking-[0.3em] mb-10 flex items-center gap-2">
+                    <span class="w-2 h-2 bg-emerald-500"></span> 5. Recomendações Forenses e Expansão
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                    <div class="space-y-6 text-slate-400 text-sm leading-relaxed">
+                        <p id="roadmap-desc">Os artefatos coletados comprovam negligência na lógica de desenvolvimento do provedor. Como remediação, o ecossistema Axiom Premier implementará o modelo de <strong>Soberania Cross-Chain</strong>.</p>
+                        <ul class="space-y-4">
+                            <li class="flex items-start gap-4">
+                                <span class="text-emerald-500 font-bold">01.</span>
+                                <span id="rec-1">Migração da Tesouraria para Squads Protocol (Multi-Sig Institucional) na Solana.</span>
+                            </li>
+                            <li class="flex items-start gap-4">
+                                <span class="text-emerald-500 font-bold">02.</span>
+                                <span id="rec-2">Restituição do supply isolado via rede TRON (TRC20) com paridade 1:1.</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="bg-black/50 p-8 border border-emerald-500/10 rounded">
+                        <div class="flex items-center gap-4 mb-6">
+                            <div class="w-12 h-12 bg-emerald-500/10 rounded flex items-center justify-center text-emerald-500 font-bold text-xl">TR</div>
+                            <div>
+                                <div class="text-[10px] mono text-slate-500">REDE_EXPANSÃO</div>
+                                <div class="text-lg font-bold text-white">TRON_NETWORK</div>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-emerald-500 w-[75%] animate-pulse"></div>
+                            </div>
+                            <p id="injection-status" class="text-[9px] mono text-emerald-500 text-right uppercase tracking-widest">Injeção Semente: Inicializada</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="py-12 border-t border-white/5 text-center">
+        <p class="text-[9px] mono text-slate-600 uppercase tracking-[0.5em]">Axiom Premier Ecosystem • Case Archive 2026 • Certified Audit</p>
+        <div class="mt-4 opacity-30 grayscale inline-block">
+            <span class="text-xs px-2 border border-slate-700">SHA-256: 0x8a9b2c...eef45</span>
+        </div>
+    </footer>
+
+    <script>
+        const content = {
+            pt: {
+                mainTitle: "Dossiê Forense Interno: <span class='text-blue-500'>Falhas em Protocolos Web3</span>",
+                reportDate: "Data do Relatório: 11 de Agosto de 2026",
+                auditorLabel: "Responsável: Axiom Premier Audit Dept.",
+                abstractTitle: "1. Resumo Executivo (Abstract)",
+                abstractContent: "<p>Este documento analisa vulnerabilidades críticas no processamento de transações em lote (Batching) utilizando ferramentas de terceiros durante o Genesis Day do projeto Axiom Premier. A investigação foca na corrupção de strings criptográficas que resultou no isolamento definitivo de 80% do supply nativo na rede Solana.</p>",
+                multisenderTitle: "2. Análise de Falhas: Multisender Smithii",
+                multisenderDesc1: "<strong>Mecanismo da Falha:</strong> O provedor de batching falhou ao converter strings de endereços, alterando caracteres maiúsculos/minúsculos antes da assinatura da transação.",
+                multisenderDesc2: "<strong>Causa Raiz:</strong> Ausência de Checksum de integridade no motor de roteamento do provedor.",
+                stampBurned: "SUPPLY QUEIMADO",
+                supplyAnalysisTitle: "3. Impacto no Ledger: Proof of Burn",
+                statBurnedLabel: "ISOLADO (BURNED)",
+                statCircLabel: "CIRCULANTE",
+                custodyTitle: "4. Cadeia de Custódia e Artefatos Digitais",
+                roadmapTitle: "5. Recomendações Forenses e Expansão",
+                roadmapDesc: "Os artefatos coletados comprovam negligência na lógica de desenvolvimento do provedor. Como remediação, o ecossistema Axiom Premier implementará o modelo de <strong>Soberania Cross-Chain</strong>.",
+                rec1: "Migração da Tesouraria para Squads Protocol (Multi-Sig Institucional) na Solana.",
+                rec2: "Restituição do supply isolado via rede TRON (TRC20) com paridade 1:1.",
+                injectionStatus: "Injeção Semente: Inicializada",
+                chartLabels: ['Isolado', 'Circulante']
+            },
+            en: {
+                mainTitle: "Internal Forensic Dossier: <span class='text-blue-500'>Web3 Protocol Failures</span>",
+                reportDate: "Report Date: August 11, 2026",
+                auditorLabel: "Responsible: Axiom Premier Audit Dept.",
+                abstractTitle: "1. Executive Summary (Abstract)",
+                abstractContent: "<p>This document analyzes critical vulnerabilities in batch transaction processing using third-party tools during the Genesis Day of the Axiom Premier project. The investigation focuses on cryptographic string corruption that resulted in the permanent isolation of 80% of the native supply on the Solana network.</p>",
+                multisenderTitle: "2. Failure Analysis: Smithii Multisender",
+                multisenderDesc1: "<strong>Failure Mechanism:</strong> The batching provider failed to convert address strings, altering uppercase/lowercase characters before transaction signing.",
+                multisenderDesc2: "<strong>Root Cause:</strong> Absence of integrity Checksum in the provider's routing engine.",
+                stampBurned: "SUPPLY BURNED",
+                supplyAnalysisTitle: "3. Ledger Impact: Proof of Burn",
+                statBurnedLabel: "ISOLATED (BURNED)",
+                statCircLabel: "CIRCULATING",
+                custodyTitle: "4. Chain of Custody & Digital Artifacts",
+                roadmapTitle: "5. Forensic Recommendations & Expansion",
+                roadmapDesc: "Collected artifacts prove negligence in the provider's development logic. As remediation, the Axiom Premier ecosystem will implement the <strong>Cross-Chain Sovereignty</strong> model.",
+                rec1: "Treasury migration to Squads Protocol (Institutional Multi-Sig) on Solana.",
+                rec2: "Restitution of isolated supply via TRON (TRC20) network with 1:1 parity.",
+                injectionStatus: "Seed Injection: Initialized",
+                chartLabels: ['Isolated', 'Circulating']
+            }
+        };
+
+        let currentChart = null;
+
+        function changeLang(lang) {
+            document.getElementById('btn-pt').classList.toggle('active', lang === 'pt');
+            document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+            
+            const d = content[lang];
+            
+            document.getElementById('main-title').innerHTML = d.mainTitle;
+            document.getElementById('report-date').innerText = d.reportDate;
+            document.getElementById('auditor-label').innerText = d.auditorLabel;
+            document.getElementById('abstract-title').innerHTML = `<span class="w-2 h-2 bg-blue-500"></span> ${d.abstractTitle}`;
+            document.getElementById('abstract-content').innerHTML = d.abstractContent;
+            document.getElementById('multisender-title').innerText = d.multisenderTitle;
+            document.getElementById('multisender-desc-1').innerHTML = d.multisenderDesc1;
+            document.getElementById('multisender-desc-2').innerHTML = d.multisenderDesc2;
+            document.getElementById('stamp-burned').innerText = d.stampBurned;
+            document.getElementById('supply-analysis-title').innerText = d.supplyAnalysisTitle;
+            document.getElementById('stat-burned-label').innerText = d.statBurnedLabel;
+            document.getElementById('stat-circ-label').innerText = d.statCircLabel;
+            document.getElementById('custody-title').innerHTML = `<span class="w-2 h-2 bg-slate-500"></span> ${d.custodyTitle}`;
+            document.getElementById('roadmap-title').innerHTML = `<span class="w-2 h-2 bg-emerald-500"></span> ${d.roadmapTitle}`;
+            document.getElementById('roadmap-desc').innerHTML = d.roadmapDesc;
+            document.getElementById('rec-1').innerText = d.rec1;
+            document.getElementById('rec-2').innerText = d.rec2;
+            document.getElementById('injection-status').innerText = d.injectionStatus;
+
+            updateChart(lang);
+        }
+
+        function updateChart(lang) {
+            const ctx = document.getElementById('supplyChart').getContext('2d');
+            if(currentChart) currentChart.destroy();
+            
+            currentChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: content[lang].chartLabels,
+                    datasets: [{
+                        data: [80, 20],
+                        backgroundColor: ['#ef4444', '#10b981'],
+                        borderColor: '#0b0f19',
+                        borderWidth: 4,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: {
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { 
+                                color: '#94a3b8', 
+                                font: { size: 10, family: 'JetBrains Mono', weight: 'bold' },
+                                padding: 20
+                            } 
+                        }
+                    }
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            changeLang('pt');
+        });
+    </script>
+    <!-- Visualization & Content Choices: 
+    1. Report Info -> Dashboard Approach -> Design de Dossiê Forense. Justificação: Transmite seriedade técnica após uma falha catastrófica.
+    2. Quantitative Data -> Supply Comparison -> Doughnut Chart (Chart.js). Justificação: Visualização clara da proporção 80/20.
+    3. Qualitative Insights -> Multisender Failure -> Code block visualization. Justificação: Expõe visualmente o erro de "Case Sensitivity" que gerou o bug.
+    4. Chain of Custody -> Evidence Table -> HTML Table. Justificação: Estrutura padrão de auditoria para links Solscan.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</body>
+</html>
